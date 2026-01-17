@@ -23,7 +23,7 @@ class SenderController extends ChangeNotifier {
 
   static const int LEFT_EYE = 0;
   static const int RIGHT_EYE = 1;
-
+ 
   String? leftImageId;
   String? rightImageId;
 
@@ -211,6 +211,85 @@ class SenderController extends ChangeNotifier {
         bytes,
       );
 
+      // Show styled API result dialog for 3 seconds
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          Future.delayed(const Duration(seconds: 3), () {
+            if (Navigator.canPop(context)) Navigator.pop(context);
+          });
+
+          final bool isLeft = index == LEFT_EYE;
+          final String eyeLabel = isLeft ? "Left Eye" : "Right Eye";
+
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: isPassed ? const Color(0xFFE8F7EF) : const Color(0xFFFDEAEA),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isPassed ? Icons.check_circle : Icons.cancel,
+                      size: 48,
+                      color: isPassed ? const Color(0xFF2FBF71) : const Color(0xFFE5533D),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    isPassed ? "Quality Check Passed" : "Quality Check Failed",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: isPassed ? const Color(0xFF1F8F57) : const Color(0xFFB42318),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    isPassed
+                        ? "$eyeLabel image is clear and usable."
+                        : "$eyeLabel image failed. Please retake the image.",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF475467),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    width: double.infinity,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: isPassed ? const Color(0xFF2FBF71) : const Color(0xFFE5533D),
+                    ),
+                    child: const Text(
+                      "Auto closing...",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
       if (isPassed) {
         if (index == 0) {
           leftImageId = vision.leftEyeId;
@@ -301,7 +380,7 @@ class SenderController extends ChangeNotifier {
       }
 
       debugPrint(
-          "Sending COMPRESSED image. Eye: ${eyeIndex == LEFT_EYE ? "LEFT" : "RIGHT"}, ImageId: $imgId");
+          "Sending image. Eye: ${eyeIndex == LEFT_EYE ? "LEFT" : "RIGHT"}, ImageId: $imgId");
 
       final Uint8List idBytes = Uint8List.fromList(imgId.codeUnits);
 
@@ -318,7 +397,7 @@ class SenderController extends ChangeNotifier {
 
       await nearby.sendBytesPayload(connectedEndpoint!, payload);
 
-      status = "Sending compressed image...";
+      status = "Sending image...";
       sendProgress = 0;
       notifyListeners();
     } catch (e) {
