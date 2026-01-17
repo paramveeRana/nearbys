@@ -1,11 +1,17 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image/image.dart' as img;
 import 'package:nearby_connections/nearby_connections.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'controller/enums.dart';
+import 'controller/vision_conroller.dart';
+
 class SenderController extends ChangeNotifier {
+  final ImagePicker _picker = ImagePicker();
   bool isDiscovering = false;
   bool isConnecting = false;
 
@@ -14,6 +20,9 @@ class SenderController extends ChangeNotifier {
 
   File? image0; // left eye
   File? image1; // right eye
+
+  bool isChecking0 = false; // left eye loading
+  bool isChecking1 = false; // right eye loading
 
   final Nearby nearby = Nearby();
   final Strategy strategy = Strategy.P2P_POINT_TO_POINT;
@@ -138,19 +147,76 @@ class SenderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> pickImage(int index, BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result == null) return;
+  Future<void> pickImage(int index, BuildContext context, WidgetRef ref) async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        imageQuality: 90,
+      );
 
-    final file = File(result.files.single.path!);
+      if (photo == null) return;
 
-    if (index == 0) {
-      image0 = file;
-    } else {
-      image1 = file;
+      final file = File(photo.path);
+
+      if (!await file.exists()) {
+        debugPrint("Captured image file does not exist");
+        return;
+      }
+
+      // Show image immediately
+      if (index == 0) {
+        image0 = file;
+        isChecking0 = true;
+      } else {
+        image1 = file;
+        isChecking1 = true;
+      }
+      notifyListeners();
+
+      // Convert image to bytes
+      final Uint8List bytes = await file.readAsBytes();
+
+      // Call quality check API
+      final vision = ref.read(visionController);
+
+      final bool isPassed = await vision.captureAiVisionTestImage(
+        context,
+        index == 0
+            ? AiVisionTestImageTypeEnum.leftEye
+            : AiVisionTestImageTypeEnum.rightEye,
+        ref,
+        bytes,
+      );
+
+      // Stop loading
+      if (index == 0) {
+        isChecking0 = false;
+      } else {
+        isChecking1 = false;
+      }
+
+      // If quality failed → remove image
+      if (!isPassed) {
+        if (index == 0) {
+          image0 = null;
+        } else {
+          image1 = null;
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      if (index == 0) {
+        isChecking0 = false;
+        image0 = null;
+      } else {
+        isChecking1 = false;
+        image1 = null;
+      }
+      notifyListeners();
+      debugPrint("Camera capture failed: $e");
     }
-
-    notifyListeners();
   }
 
   Future<void> sendBothImages() async {
@@ -168,23 +234,31 @@ class SenderController extends ChangeNotifier {
     if (connectedEndpoint == null) return;
 
     try {
-      final imageBytes = await file.readAsBytes();
+      final rawBytes = await file.readAsBytes();
 
-      final payload = Uint8List(imageBytes.length + 1);
+      // Decode any format (HEIC/JPEG/PNG)
+      final decoded = img.decodeImage(rawBytes);
+      if (decoded == null) {
+        debugPrint("Failed to decode image");
+        return;
+      }
+
+      // Re-encode as pure JPEG
+      final jpegBytes = img.encodeJpg(decoded, quality: 90);
+
+      final payload = Uint8List(jpegBytes.length + 1);
       payload[0] = imageId;
-      payload.setRange(1, payload.length, imageBytes);
+      payload.setRange(1, payload.length, jpegBytes);
 
-      await nearby.sendBytesPayload(
-        connectedEndpoint!,
-        payload,
-      );
+      await nearby.sendBytesPayload(connectedEndpoint!, payload);
 
       status = "Sending image...";
       sendProgress = 0;
       notifyListeners();
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Send error: $e");
+    }
   }
-
   void disposeController() {
     stopDiscovery();
   }

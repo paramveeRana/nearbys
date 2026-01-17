@@ -45,11 +45,11 @@ class VisionController extends ChangeNotifier{
   String? leftEyeId;
   String? rightEyeId;
 
-  Future<void> captureAiVisionTestImage(
+  Future<bool> captureAiVisionTestImage(
       BuildContext context,
       AiVisionTestImageTypeEnum type,
       WidgetRef ref,
-      Uint8List bytes
+      Uint8List bytes,
       ) async {
     try {
       switch (type) {
@@ -62,18 +62,28 @@ class VisionController extends ChangeNotifier{
       }
 
       if (context.mounted) {
-        await cataractScan(context, bytes, type, ref);
-        // notifyListeners();
+        final result = await cataractScan(context, bytes, type, ref);
+
+        // If quality passed
+        if (result.success?.qualityPassed == true) {
+          return true;
+        } else {
+          _resetEye(type);
+          return false;
+        }
       }
     } catch (e) {
       if (context.mounted) {
         print(e);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("erro : $e")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("error: $e")));
       }
     }
-    notifyListeners();
-  }
 
+    _resetEye(type);
+    notifyListeners();
+    return false;
+  }
 
   UIState<CataractScanResponseModel> cataractScanState =
   UIState<CataractScanResponseModel>();

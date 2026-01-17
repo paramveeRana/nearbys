@@ -70,11 +70,12 @@ class _SenderHomeState extends ConsumerState<SenderHome> {
 
   Widget _imageSlot(int index) {
     File? image = index == 0 ? controller.image0 : controller.image1;
+    bool isLoading = index == 0 ? controller.isChecking0 : controller.isChecking1;
 
     return GestureDetector(
       onTap: () async {
         try {
-          await controller.pickImage(index, context);
+          await controller.pickImage(index, context, ref);
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -93,17 +94,36 @@ class _SenderHomeState extends ConsumerState<SenderHome> {
         ),
         child: image == null
             ? Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.add_photo_alternate, size: 40),
-            SizedBox(height: 10),
-            Text("Tap to select"),
-          ],
-        )
-            : ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.file(image, fit: BoxFit.cover),
-        ),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.add_photo_alternate, size: 40),
+                  SizedBox(height: 10),
+                  Text("Tap to select"),
+                ],
+              )
+            : Stack(
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(image, fit: BoxFit.cover),
+                    ),
+                  ),
+
+                  if (isLoading)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
       ),
     );
   }
@@ -116,10 +136,41 @@ class _SenderHomeState extends ConsumerState<SenderHome> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            const SizedBox(height: 10),
+            const Text(
+              "Step 1: Capture Both Eye Images",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 15),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _imageSlot(0),
+                _imageSlot(1),
+              ],
+            ),
+
+            const SizedBox(height: 25),
+
+            const Divider(),
+
+            const SizedBox(height: 15),
+
+            const Text(
+              "Step 2: Connect to Receiver",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 15),
+
             ElevatedButton(
-              onPressed: controller.isDiscovering
-                  ? controller.stopDiscovery
-                  : openQrScanner,
+              onPressed: (controller.image0 != null && controller.image1 != null)
+                  ? (controller.isDiscovering
+                      ? controller.stopDiscovery
+                      : openQrScanner)
+                  : null,
               child: Text(
                 controller.isDiscovering ? "Stop Discovery" : "Scan Receiver QR",
               ),
@@ -138,22 +189,13 @@ class _SenderHomeState extends ConsumerState<SenderHome> {
 
             if (controller.connectedEndpoint != null) ...[
               const SizedBox(height: 30),
+
               const Text(
-                "Send Images",
+                "Connected. Ready to Send",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
-              const SizedBox(height: 15),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _imageSlot(0),
-                  _imageSlot(1),
-                ],
-              ),
-
-              const SizedBox(height: 25),
+              const SizedBox(height: 20),
 
               ElevatedButton(
                 onPressed: controller.canSubmit
