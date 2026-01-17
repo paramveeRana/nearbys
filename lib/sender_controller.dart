@@ -266,8 +266,30 @@ class SenderController extends ChangeNotifier {
     if (connectedEndpoint == null) return;
 
     try {
-      // Read raw image bytes (no decoding, no re-encoding)
-      final Uint8List imageBytes = await file.readAsBytes();
+      // Read original bytes
+      final Uint8List originalBytes = await file.readAsBytes();
+
+      // Decode image
+      final img.Image? decoded = img.decodeImage(originalBytes);
+      if (decoded == null) {
+        debugPrint("Failed to decode image for compression");
+        return;
+      }
+
+      // Resize for faster transfer (keeps good quality for eyes)
+      final img.Image resized = img.copyResize(
+        decoded,
+        width: 720, // tune: 640 (faster) | 800 (better quality)
+      );
+
+      // Encode JPEG with balanced quality
+      final Uint8List compressedBytes =
+          Uint8List.fromList(img.encodeJpg(resized, quality: 65));
+
+      debugPrint(
+          "Original size: ${originalBytes.lengthInBytes ~/ 1024} KB");
+      debugPrint(
+          "Compressed size: ${compressedBytes.lengthInBytes ~/ 1024} KB");
 
       // Get correct imageId
       final String imgId =
@@ -279,23 +301,24 @@ class SenderController extends ChangeNotifier {
       }
 
       debugPrint(
-          "Sending image to receiver. Eye: ${eyeIndex == LEFT_EYE ? "LEFT" : "RIGHT"}, ImageId: $imgId");
+          "Sending COMPRESSED image. Eye: ${eyeIndex == LEFT_EYE ? "LEFT" : "RIGHT"}, ImageId: $imgId");
 
       final Uint8List idBytes = Uint8List.fromList(imgId.codeUnits);
 
       // Payload format:
       // [eyeSide][imageIdLength][imageIdBytes...][imageBytes...]
       final Uint8List payload =
-          Uint8List(2 + idBytes.length + imageBytes.length);
+          Uint8List(2 + idBytes.length + compressedBytes.length);
 
       payload[0] = eyeIndex; // 0 = left, 1 = right
       payload[1] = idBytes.length; // imageId length
       payload.setRange(2, 2 + idBytes.length, idBytes);
-      payload.setRange(2 + idBytes.length, payload.length, imageBytes);
+      payload.setRange(
+          2 + idBytes.length, payload.length, compressedBytes);
 
       await nearby.sendBytesPayload(connectedEndpoint!, payload);
 
-      status = "Sending image...";
+      status = "Sending compressed image...";
       sendProgress = 0;
       notifyListeners();
     } catch (e) {
