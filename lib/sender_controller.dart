@@ -21,6 +21,12 @@ class SenderController extends ChangeNotifier {
   File? image0; // left eye
   File? image1; // right eye
 
+  static const int LEFT_EYE = 0;
+  static const int RIGHT_EYE = 1;
+
+  String? leftImageId;
+  String? rightImageId;
+
   bool isChecking0 = false; // left eye loading
   bool isChecking1 = false; // right eye loading
 
@@ -164,18 +170,34 @@ class SenderController extends ChangeNotifier {
         return;
       }
 
+      // Read raw bytes (Lenovo back camera may return HEIC/rotated image)
+      final rawBytes = await file.readAsBytes();
+
+      // Decode any format safely
+      final decoded = img.decodeImage(rawBytes);
+      if (decoded == null) {
+        debugPrint("Failed to decode image");
+        return;
+      }
+
+      // Re-encode as clean JPEG so Flutter can render it
+      final jpegBytes = img.encodeJpg(decoded, quality: 90);
+
+      // Overwrite file with normalized JPEG
+      final normalizedFile = await file.writeAsBytes(jpegBytes);
+
       // Show image immediately
       if (index == 0) {
-        image0 = file;
+        image0 = normalizedFile;
         isChecking0 = true;
       } else {
-        image1 = file;
+        image1 = normalizedFile;
         isChecking1 = true;
       }
       notifyListeners();
 
       // Convert image to bytes
-      final Uint8List bytes = await file.readAsBytes();
+      final Uint8List bytes = jpegBytes;
 
       // Call quality check API
       final vision = ref.read(visionController);
@@ -189,6 +211,14 @@ class SenderController extends ChangeNotifier {
         bytes,
       );
 
+      if (isPassed) {
+        if (index == 0) {
+          leftImageId = vision.leftEyeId;
+        } else {
+          rightImageId = vision.rightEyeId;
+        }
+      }
+
       // Stop loading
       if (index == 0) {
         isChecking0 = false;
@@ -200,8 +230,10 @@ class SenderController extends ChangeNotifier {
       if (!isPassed) {
         if (index == 0) {
           image0 = null;
+          leftImageId = null;
         } else {
           image1 = null;
+          rightImageId = null;
         }
       }
 
@@ -218,37 +250,48 @@ class SenderController extends ChangeNotifier {
       debugPrint("Camera capture failed: $e");
     }
   }
-
   Future<void> sendBothImages() async {
     if (!canSubmit) return;
 
     await Future.delayed(const Duration(milliseconds: 600));
-    await _sendImage(image0!, 0);
+    await _sendImage(image0!, LEFT_EYE);
 
     await Future.delayed(const Duration(milliseconds: 800));
-    await _sendImage(image1!, 1);
+    await _sendImage(image1!, RIGHT_EYE);
   }
 
+  // ---------------- SEND IMAGE PAYLOAD ----------------
 
-  Future<void> _sendImage(File file, int imageId) async {
+  Future<void> _sendImage(File file, int eyeIndex) async {
     if (connectedEndpoint == null) return;
 
     try {
-      final rawBytes = await file.readAsBytes();
+      // Read raw image bytes (no decoding, no re-encoding)
+      final Uint8List imageBytes = await file.readAsBytes();
 
-      // Decode any format (HEIC/JPEG/PNG)
-      final decoded = img.decodeImage(rawBytes);
-      if (decoded == null) {
-        debugPrint("Failed to decode image");
+      // Get correct imageId
+      final String imgId =
+          eyeIndex == LEFT_EYE ? (leftImageId ?? "") : (rightImageId ?? "");
+
+      if (imgId.isEmpty) {
+        debugPrint("ImageId missing. Not sending payload.");
         return;
       }
 
-      // Re-encode as pure JPEG
-      final jpegBytes = img.encodeJpg(decoded, quality: 90);
+      debugPrint(
+          "Sending image to receiver. Eye: ${eyeIndex == LEFT_EYE ? "LEFT" : "RIGHT"}, ImageId: $imgId");
 
-      final payload = Uint8List(jpegBytes.length + 1);
-      payload[0] = imageId;
-      payload.setRange(1, payload.length, jpegBytes);
+      final Uint8List idBytes = Uint8List.fromList(imgId.codeUnits);
+
+      // Payload format:
+      // [eyeSide][imageIdLength][imageIdBytes...][imageBytes...]
+      final Uint8List payload =
+          Uint8List(2 + idBytes.length + imageBytes.length);
+
+      payload[0] = eyeIndex; // 0 = left, 1 = right
+      payload[1] = idBytes.length; // imageId length
+      payload.setRange(2, 2 + idBytes.length, idBytes);
+      payload.setRange(2 + idBytes.length, payload.length, imageBytes);
 
       await nearby.sendBytesPayload(connectedEndpoint!, payload);
 
@@ -257,6 +300,43 @@ class SenderController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint("Send error: $e");
+    }
+  }
+  /// reset flow
+  Future<void> resetFlow() async {
+    try {
+      // Stop discovery
+      await stopDiscovery();
+
+      // Disconnect receiver if connected
+      if (connectedEndpoint != null) {
+        try {
+          await nearby.disconnectFromEndpoint(connectedEndpoint!);
+        } catch (_) {}
+      }
+
+      // Reset connection state
+      connectedEndpoint = null;
+      receiverId = "";
+      status = "Idle";
+
+      // Reset images
+      image0 = null;
+      image1 = null;
+      leftImageId = null;
+      rightImageId = null;
+
+      // Reset loading flags
+      isChecking0 = false;
+      isChecking1 = false;
+
+      // Reset progress
+      sendProgress = 0;
+      sendingPayloadId = null;
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Reset flow error: $e");
     }
   }
   void disposeController() {

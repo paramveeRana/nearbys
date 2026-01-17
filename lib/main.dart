@@ -167,12 +167,27 @@ class _SenderHomeState extends ConsumerState<SenderHome> {
 
             ElevatedButton(
               onPressed: (controller.image0 != null && controller.image1 != null)
-                  ? (controller.isDiscovering
-                      ? controller.stopDiscovery
-                      : openQrScanner)
+                  ? () async {
+                // If already connected → reset flow
+                if (controller.connectedEndpoint != null) {
+                  await controller.resetFlow();
+                  return;
+                }
+
+                // Normal scan flow
+                if (controller.isDiscovering) {
+                  await controller.stopDiscovery();
+                } else {
+                  openQrScanner();
+                }
+              }
                   : null,
               child: Text(
-                controller.isDiscovering ? "Stop Discovery" : "Scan Receiver QR",
+                controller.connectedEndpoint != null
+                    ? "Rescan Receiver QR"
+                    : controller.isDiscovering
+                    ? "Stop Discovery"
+                    : "Scan Receiver QR",
               ),
             ),
 
