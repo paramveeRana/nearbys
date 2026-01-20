@@ -17,11 +17,27 @@ class ApiCalling {
   Future<dynamic> cataractScanApi(String requestBody) async {
     try {
 
-      Response? response = await apiClient.postRequestWithToken( AppConstant.qualityScanApi,
+      Response? response = await apiClient.postRequestWithToken( AppConstant.cataractQualityScanApi,
         requestBody,
       );
       CataractScanResponseModel responseModel =
       cataractScanResponseModelFromJson(response.toString());
+      return ApiResult.success(data: responseModel);
+    } catch (err) {
+      return ApiResult.failure(error: NetworkExceptions.getDioException(err));
+    }
+  }
+
+  Future<dynamic> squintScanApi(String requestBody) async {
+    try {
+      Response? response = await apiClient.postRequestWithToken(
+        AppConstant.squintQualityScanApi,
+        requestBody,
+      );
+
+      CataractScanResponseModel responseModel =
+      cataractScanResponseModelFromJson(response.toString());
+
       return ApiResult.success(data: responseModel);
     } catch (err) {
       return ApiResult.failure(error: NetworkExceptions.getDioException(err));

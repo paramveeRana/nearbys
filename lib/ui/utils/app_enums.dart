@@ -1,0 +1,4 @@
+enum EyeTestType {
+  cataract,
+  squint,
+}

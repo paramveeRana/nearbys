@@ -15,8 +15,6 @@ import 'network_exception.dart';
 
 
 
-
-
 final visionController = ChangeNotifierProvider((ref){
 
   return VisionController(
@@ -44,6 +42,11 @@ class VisionController extends ChangeNotifier{
 
   String? leftEyeId;
   String? rightEyeId;
+
+  /// squint scan api
+  Uint8List? squintEyeImage;
+  String? squintEyeId;
+
 
   Future<bool> captureAiVisionTestImage(
       BuildContext context,
@@ -85,8 +88,45 @@ class VisionController extends ChangeNotifier{
     return false;
   }
 
+  /// squit api
+  Future<bool> captureAiSquintTestImage(
+      BuildContext context,
+      WidgetRef ref,
+      Uint8List bytes,
+      ) async {
+    try {
+      squintEyeImage = bytes;
+
+      if (context.mounted) {
+        final result = await squintScan(context, bytes, ref);
+
+        if (result.success?.qualityPassed == true) {
+          return true;
+        } else {
+          squintEyeImage = null;
+          squintEyeId = null;
+          return false;
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("error: $e")));
+      }
+    }
+
+    squintEyeImage = null;
+    squintEyeId = null;
+    notifyListeners();
+    return false;
+  }
+
+
   UIState<CataractScanResponseModel> cataractScanState =
   UIState<CataractScanResponseModel>();
+
+  UIState<CataractScanResponseModel> squintScanState = UIState<CataractScanResponseModel>();
+
   Future<UIState<CataractScanResponseModel>> cataractScan(
       BuildContext context,
       Uint8List imageBytes,
@@ -215,6 +255,61 @@ class VisionController extends ChangeNotifier{
     notifyListeners();
     return cataractScanState;
   }
+
+
+  /// squint api
+  Future<UIState<CataractScanResponseModel>> squintScan(
+      BuildContext context,
+      Uint8List imageBytes,
+      WidgetRef ref,
+      ) async {
+    squintScanState.isLoading = true;
+    notifyListeners();
+
+    final request = {
+      'image': base64Encode(imageBytes),
+      'client_code': 'sccore_demo',
+    };
+
+    final result = await _aiVisionTestRepository.squintScanApi(
+      jsonEncode(request),
+    );
+
+    if (result is Success<CataractScanResponseModel>) {
+      final data = result.data;
+      squintScanState.success = data;
+
+      if (data.qualityPassed == true) {
+        squintEyeImage = imageBytes;
+        squintEyeId = data.imageId;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Squint quality check passed")),
+        );
+      } else {
+        squintEyeImage = null;
+        squintEyeId = null;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Squint quality check failed")),
+        );
+      }
+    } else if (result is Failure) {
+      squintEyeImage = null;
+      squintEyeId = null;
+
+      final errorMessage =
+      NetworkExceptions.getErrorMessage(result.error);
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(errorMessage)));
+    }
+
+    squintScanState.isLoading = false;
+    notifyListeners();
+    return squintScanState;
+  }
+
   void _resetEye(AiVisionTestImageTypeEnum type) {
     if (type == AiVisionTestImageTypeEnum.leftEye) {
       leftEyeImage = null;

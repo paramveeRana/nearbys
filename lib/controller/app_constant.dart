@@ -2,7 +2,8 @@
 
 
 class AppConstant {
-  static String qualityScanApi = 'https://platform-api.logy.ai/api/v1/for-enterprise/vision/cataract-scan';
+  static String cataractQualityScanApi = 'https://platform-api.logy.ai/api/v1/for-enterprise/vision/cataract-scan';
+  static String squintQualityScanApi = 'https://platform-api.logy.ai/api/v1/for-enterprise/vision/squint-scan';
 }
 
 
