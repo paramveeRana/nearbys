@@ -15,7 +15,7 @@ class EyeTestToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 260,
-      height: 44,
+      height: 50,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFF4F8BFF),
@@ -31,7 +31,7 @@ class EyeTestToggle extends StatelessWidget {
                 : Alignment.centerRight,
             child: Container(
               width: 126,
-              height: 36,
+              height: 40,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(26),
@@ -40,7 +40,7 @@ class EyeTestToggle extends StatelessWidget {
           ),
           Row(
             children: [
-              _buildTab("Contract", EyeTestType.cataract),
+              _buildTab("Cataract", EyeTestType.cataract),
               _buildTab("Squint", EyeTestType.squint),
             ],
           )

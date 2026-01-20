@@ -5,10 +5,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:nearbys/controller/squint_scan_model.dart';
 import 'package:nearbys/controller/ui_state.dart';
 import 'api_calling.dart';
 import 'api_result.dart';
-import 'contract_Scan_model.dart';
+import 'contract_scan_model.dart';
 import 'dio_operation.dart';
 import 'enums.dart';
 import 'network_exception.dart';
@@ -125,7 +126,7 @@ class VisionController extends ChangeNotifier{
   UIState<CataractScanResponseModel> cataractScanState =
   UIState<CataractScanResponseModel>();
 
-  UIState<CataractScanResponseModel> squintScanState = UIState<CataractScanResponseModel>();
+  UIState<SquintScanResponseModel> squintScanState = UIState<SquintScanResponseModel>();
 
   Future<UIState<CataractScanResponseModel>> cataractScan(
       BuildContext context,
@@ -170,10 +171,11 @@ class VisionController extends ChangeNotifier{
       }
     }
     else if (result is Failure) {
-      _resetEye(type);
-
+      final failure = result as Failure;
       final errorMessage =
-      NetworkExceptions.getErrorMessage(result.error);
+      NetworkExceptions.getErrorMessage(failure.error);
+
+
 
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(errorMessage)));
@@ -258,7 +260,7 @@ class VisionController extends ChangeNotifier{
 
 
   /// squint api
-  Future<UIState<CataractScanResponseModel>> squintScan(
+  Future<UIState<SquintScanResponseModel>> squintScan(
       BuildContext context,
       Uint8List imageBytes,
       WidgetRef ref,
@@ -275,13 +277,20 @@ class VisionController extends ChangeNotifier{
       jsonEncode(request),
     );
 
-    if (result is Success<CataractScanResponseModel>) {
+
+    if (result is Success<SquintScanResponseModel>) {
       final data = result.data;
       squintScanState.success = data;
 
       if (data.qualityPassed == true) {
         squintEyeImage = imageBytes;
         squintEyeId = data.imageId;
+
+
+        debugPrint("===== SQUINT API FULL RESULT =====");
+        debugPrint(jsonEncode(data.toJson()));
+        debugPrint("================================");
+
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Squint quality check passed")),
@@ -294,12 +303,13 @@ class VisionController extends ChangeNotifier{
           const SnackBar(content: Text("Squint quality check failed")),
         );
       }
-    } else if (result is Failure) {
+    }
+    else if (result is Failure) {
       squintEyeImage = null;
       squintEyeId = null;
-
+      final failure = result as Failure;
       final errorMessage =
-      NetworkExceptions.getErrorMessage(result.error);
+      NetworkExceptions.getErrorMessage(failure.error);
 
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(errorMessage)));
@@ -319,6 +329,4 @@ class VisionController extends ChangeNotifier{
       rightEyeId = null;
     }
   }
-
-
 }

@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:image/image.dart' as img;
 import 'package:nearby_connections/nearby_connections.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,6 +12,8 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'enums.dart';
 import 'vision_conroller.dart';
+
+final senderControllerProvider = ChangeNotifierProvider((ref) => SenderController());
 
 class SenderController extends ChangeNotifier {
   final ImagePicker _picker = ImagePicker();
@@ -22,13 +26,14 @@ class SenderController extends ChangeNotifier {
   Uint8List? imageBytes0;
   Uint8List? imageBytes1;
 
+  bool isSquintFlow = false;
 
   File? image0; // left eye
   File? image1; // right eye
 
   static const int LEFT_EYE = 0;
   static const int RIGHT_EYE = 1;
- 
+
   String? leftImageId;
   String? rightImageId;
 
@@ -37,6 +42,8 @@ class SenderController extends ChangeNotifier {
   File? squintImage;
   String? squintImageId;
   bool isCheckingSquint = false;
+
+  Map<String, dynamic>? squintResultJson;
 
 
   bool isChecking0 = false; // left eye loading
@@ -343,6 +350,13 @@ class SenderController extends ChangeNotifier {
       leftImageId = null;
       rightImageId = null;
 
+      // reset squint
+      squintImage = null;
+      squintImageBytes = null;
+      squintImageId = null;
+      isCheckingSquint = false;
+      squintResultJson = null;
+
       isChecking0 = false;
       isChecking1 = false;
 
@@ -381,17 +395,19 @@ class SenderController extends ChangeNotifier {
       notifyListeners();
 
       final tempDir = Directory.systemTemp;
-      final file = File(
-          '${tempDir.path}/squint_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final file =
+      File('${tempDir.path}/squint_${DateTime.now().millisecondsSinceEpoch}.jpg');
       await file.writeAsBytes(jpegBytes);
 
       squintImage = file;
 
       final vision = ref.read(visionController);
-      final bool isPassed = await vision.captureAiSquintTestImage(context, ref, jpegBytes);
+      final bool isPassed =
+      await vision.captureAiSquintTestImage(context, ref, jpegBytes);
 
       if (isPassed) {
         squintImageId = vision.squintEyeId;
+        squintResultJson = vision.squintScanState.success!.toJson();
       } else {
         squintImageBytes = null;
         squintImage = null;
@@ -399,7 +415,6 @@ class SenderController extends ChangeNotifier {
 
       isCheckingSquint = false;
       notifyListeners();
-
     } catch (e) {
       debugPrint("Squint capture failed: $e");
     }
@@ -407,9 +422,13 @@ class SenderController extends ChangeNotifier {
 
   /// send squint image
   Future<void> sendSquintImage() async {
-    if (connectedEndpoint == null || squintImage == null) return;
+    if (connectedEndpoint == null ||
+        squintImage == null ||
+        squintResultJson == null ||
+        squintImageId == null) return;
 
     try {
+      // Read image
       final Uint8List originalBytes = await squintImage!.readAsBytes();
 
       final img.Image? decoded = img.decodeImage(originalBytes);
@@ -420,15 +439,43 @@ class SenderController extends ChangeNotifier {
       final Uint8List compressedBytes =
       Uint8List.fromList(img.encodeJpg(resized, quality: 65));
 
-      final Uint8List idBytes = Uint8List.fromList(squintImageId!.codeUnits);
+      // Encode JSON result
+      final Uint8List jsonBytes =
+      Uint8List.fromList(utf8.encode(jsonEncode(squintResultJson)));
 
-      final Uint8List payload =
-      Uint8List(2 + idBytes.length + compressedBytes.length);
+      // Encode Image ID
+      final Uint8List idBytes =
+      Uint8List.fromList(squintImageId!.codeUnits);
 
-      payload[0] = 2; // 2 = squint
-      payload[1] = idBytes.length;
-      payload.setRange(2, 2 + idBytes.length, idBytes);
-      payload.setRange(2 + idBytes.length, payload.length, compressedBytes);
+      final int jsonLength = jsonBytes.length;
+      final int idLength = idBytes.length;
+
+      // Payload format:
+      // [type][idLength][idBytes][jsonLength(2)][json][image]
+      final Uint8List payload = Uint8List(
+        1 + 1 + idBytes.length + 2 + jsonBytes.length + compressedBytes.length,
+      );
+
+      int offset = 0;
+
+      payload[offset++] = 2; // type = squint
+      payload[offset++] = idLength;
+
+      payload.setRange(offset, offset + idBytes.length, idBytes);
+      offset += idBytes.length;
+
+      payload[offset++] = (jsonLength >> 8) & 0xFF;
+      payload[offset++] = jsonLength & 0xFF;
+
+      payload.setRange(offset, offset + jsonBytes.length, jsonBytes);
+      offset += jsonBytes.length;
+
+      payload.setRange(offset, offset + compressedBytes.length, compressedBytes);
+
+      debugPrint("Sending squint image + result + ID");
+      debugPrint("Squint Image ID: $squintImageId");
+      debugPrint("Squint JSON Length: $jsonLength");
+      debugPrint("Squint Image Size: ${compressedBytes.lengthInBytes ~/ 1024} KB");
 
       await nearby.sendBytesPayload(connectedEndpoint!, payload);
 
@@ -448,6 +495,22 @@ class SenderController extends ChangeNotifier {
 
   /// status
   String get userStatus {
+    if (squintImageId != null && connectedEndpoint == null) {
+      return "Squint image verified. Please connect to the receiver device.";
+    }
+
+    if (connectedEndpoint != null && squintImageId != null && sendProgress == 0) {
+      return "Connected. Ready to send squint image.";
+    }
+
+    if (sendProgress > 0 && sendProgress < 100 && squintImageId != null) {
+      return "Uploading squint image... ${sendProgress.toStringAsFixed(0)}%";
+    }
+
+    if (sendProgress == 100 && squintImageId != null) {
+      return "Squint test completed successfully.";
+    }
+
     if (isDiscovering && !isConnecting) {
       return "Searching for receiver device...";
     }
@@ -456,7 +519,7 @@ class SenderController extends ChangeNotifier {
       return "Connecting to receiver device...";
     }
 
-    if (connectedEndpoint != null && !canSubmit) {
+    if (connectedEndpoint != null && !canSubmit && squintImageId == null) {
       return "Device connected. Please capture both eye images.";
     }
 
@@ -476,8 +539,9 @@ class SenderController extends ChangeNotifier {
       return "Test completed successfully.";
     }
 
-    return "Please capture both eye images to start the test.";
+    return "Please capture image to start the test.";
   }
+
 
 
 

@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nearbys/controller/sender_controller.dart';
 import 'package:nearbys/ui/cataract_eye_test/cataract_eye_test.dart';
 import 'package:nearbys/ui/squint_eye_test/squint_eye_test.dart';
 import 'package:nearbys/ui/utils/app_enums.dart';
 
 import 'helper/eye_test_toggle.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   EyeTestType selectedTest = EyeTestType.cataract;
+  final SenderController senderController = SenderController();
+
 
   @override
   Widget build(BuildContext context) {
@@ -30,10 +34,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
             EyeTestToggle(
               selected: selectedTest,
-              onChanged: (type) {
+              onChanged: (type) async {
+                await senderController.resetFlow();
+                senderController.isSquintFlow = type == EyeTestType.squint;
+
                 setState(() => selectedTest = type);
               },
             ),
+
+
 
             const SizedBox(height: 24),
 
