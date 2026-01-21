@@ -26,7 +26,7 @@ class _QrScannerState extends State<QrScanner> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text("Scan Receiver QR"),
-        backgroundColor: const Color(0xFF4F8BFF),
+        backgroundColor: const Color(0xff009AF1),
       ),
       body: Stack(
         children: [

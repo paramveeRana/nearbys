@@ -18,7 +18,7 @@ class EyeTestToggle extends StatelessWidget {
       height: 50,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFF4F8BFF),
+        color: const Color(0xff009AF1),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Stack(
@@ -54,13 +54,17 @@ class EyeTestToggle extends StatelessWidget {
 
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () => onChanged(type),
-        child: Center(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: isSelected ? const Color(0xFF4F8BFF) : Colors.white,
+        child: SizedBox(
+          height: double.infinity,
+          child: Center(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isSelected ? const Color(0xff009AF1) : Colors.white,
+              ),
             ),
           ),
         ),

@@ -24,8 +24,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
        backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("AI Vision Test"),
-        backgroundColor: const Color(0xFF4F8BFF),
+        title: const Text("SCCORE SYNC"),
+        backgroundColor: const Color(0xff009AF1),
       ),
       body: SafeArea(
         child: Column(

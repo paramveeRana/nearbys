@@ -1,7 +1,9 @@
 import 'dart:typed_data';
+import 'dart:ui' as BorderType;
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:lottie/lottie.dart';
 import 'package:nearbys/controller/sender_controller.dart';
 import '../qr_scanner.dart';
@@ -60,11 +62,11 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       decoration: BoxDecoration(
         color: const Color(0xFFF0F5FF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF4F8BFF)),
+        border: Border.all(color: const Color(0xff009AF1)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Color(0xFF4F8BFF)),
+          const Icon(Icons.info_outline, color: Color(0xff009AF1)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -96,13 +98,13 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFF4F8BFF),
+            color: const Color(0xff009AF1),
             width: 1.5,
           ),
         ),
         child: DottedBorder(
           options: RectDottedBorderOptions(
-            color: const Color(0xFF4F8BFF),
+            color: const Color(0xff009AF1),
             strokeWidth: 1.5,
             dashPattern: const [8, 6],
             padding: const EdgeInsets.all(12),
@@ -156,7 +158,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
                           "Take a clear photo of the squint eye",
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Color(0xFF4F8BFF),
+                            color: Color(0xff009AF1),
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -177,6 +179,12 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
   Widget _actionButton() {
     final bool qualityPassed = controller.squintImageId != null;
 
+    // SHOW LOADER BUTTON WHILE CONNECTING
+    if (controller.isConnecting) {
+      return _loaderButton();
+    }
+
+    // NOT CONNECTED
     if (controller.connectedEndpoint == null) {
       return SizedBox(
         width: double.infinity,
@@ -185,7 +193,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
           onPressed: qualityPassed ? openQrScanner : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: qualityPassed
-                ? const Color(0xFF4F8BFF)
+                ? const Color(0xff009AF1)
                 : Colors.grey.shade400,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -199,6 +207,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       );
     }
 
+    // CONNECTED
     return SizedBox(
       width: double.infinity,
       height: 52,
@@ -210,7 +219,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF4F8BFF),
+          backgroundColor: const Color(0xff009AF1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -218,6 +227,26 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       ),
     );
   }
+  Widget _loaderButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: null, // disabled
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xff009AF1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: LoadingAnimationWidget.waveDots(
+          color: Colors.white,
+          size: 40,
+        ),
+      ),
+    );
+  }
+
 
   Widget _retestButton() {
     return SizedBox(
@@ -225,17 +254,17 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       height: 48,
       child: OutlinedButton.icon(
         onPressed: resetTest,
-        icon: const Icon(Icons.restart_alt, color: Color(0xFF4F8BFF)),
+        icon: const Icon(Icons.restart_alt, color: Color(0xff009AF1)),
         label: const Text(
           "Retest",
           style: TextStyle(
-            color: Color(0xFF4F8BFF),
+            color: Color(0xff009AF1),
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
         ),
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0xFF4F8BFF)),
+          side: const BorderSide(color: Color(0xff009AF1)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
