@@ -137,7 +137,11 @@ class SenderController extends ChangeNotifier {
                 status = "Connected. Select images.";
                 notifyListeners();
               } else {
+                // reset loader on failure
                 isConnecting = false;
+                connectedEndpoint = null;
+                status = "Connection failed. Please try again.";
+                notifyListeners();
               }
             },
             onDisconnected: (endpointId) {
@@ -148,13 +152,30 @@ class SenderController extends ChangeNotifier {
             },
           );
         },
-        onEndpointLost: (id) {},
+        onEndpointLost: (id) {
+          if (isConnecting) {
+            isConnecting = false;
+            status = "Receiver lost. Please try again.";
+            notifyListeners();
+          }
+        },
       );
 
       status = "Scanning for receiver...";
       notifyListeners();
+
+      // ❗ Timeout protection (15 seconds)
+      Future.delayed(const Duration(seconds: 15), () {
+        if (isConnecting || isDiscovering) {
+          stopDiscovery();
+          isConnecting = false;
+          status = "Connection timeout. Please try again.";
+          notifyListeners();
+        }
+      });
     } catch (e) {
       isDiscovering = false;
+      isConnecting = false; // reset loader
       status = "Discovery failed";
       notifyListeners();
     }
@@ -168,6 +189,7 @@ class SenderController extends ChangeNotifier {
     } catch (e) {}
 
     isDiscovering = false;
+    isConnecting = false; // reset loader
     status = "Discovery stopped";
     notifyListeners();
   }
@@ -340,6 +362,8 @@ class SenderController extends ChangeNotifier {
       connectedEndpoint = null;
       receiverId = "";
       status = "Idle";
+
+      isConnecting = false; // reset loader
 
       image0 = null;
       image1 = null;
