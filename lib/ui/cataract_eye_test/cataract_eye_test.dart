@@ -15,20 +15,8 @@ class CataractEyeTest extends ConsumerStatefulWidget {
 }
 
 class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
-  final SenderController controller = SenderController();
 
-  @override
-  void initState() {
-    super.initState();
-    controller.initPermissions();
-    controller.addListener(_refreshUI);
-  }
-
-  void _refreshUI() {
-    if (mounted) setState(() {});
-  }
-
-  void openQrScanner() {
+  void openQrScanner(SenderController controller) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -43,18 +31,11 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
     );
   }
 
-  void resetTest() async {
+  void resetTest(SenderController controller) async {
     await controller.resetFlow();
   }
 
-  @override
-  void dispose() {
-    controller.disposeController();
-    controller.removeListener(_refreshUI);
-    super.dispose();
-  }
-
-  Widget _statusBanner() {
+  Widget _statusBanner(SenderController controller) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -81,7 +62,7 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
     );
   }
 
-  Widget _imageSlot(int index) {
+  Widget _imageSlot(int index, SenderController controller) {
     Uint8List? imageBytes =
     index == 0 ? controller.imageBytes0 : controller.imageBytes1;
 
@@ -109,12 +90,8 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
             color: const Color(0xff009AF1),
             strokeWidth: 1.5,
             dashPattern: const [8, 6],
-            // borderType: BorderType.RRect,
-            // radius: const Radius.circular(16),
             padding: const EdgeInsets.all(12),
           ),
-
-
           child: Container(
             width: double.infinity,
             height: 300,
@@ -135,7 +112,6 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
                       fit: BoxFit.cover,
                     ),
                   ),
-
                 if (imageBytes == null && !isLoading)
                   Column(
                     mainAxisSize: MainAxisSize.min,
@@ -161,7 +137,8 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
                       ),
                       const SizedBox(height: 6),
                       Padding(
-                        padding: EdgeInsetsGeometry.symmetric(horizontal: 16),
+                        padding:
+                        const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
                           index == 0
                               ? "Take a clear photo of your left eye"
@@ -176,8 +153,6 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
                       ),
                     ],
                   ),
-
-
                 if (isLoading) const CircularProgressIndicator(),
               ],
             ),
@@ -207,23 +182,25 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
     );
   }
 
-
-  Widget _actionButton() {
+  Widget _actionButton(SenderController controller) {
     final bool qualityPassed =
         controller.leftImageId != null && controller.rightImageId != null;
 
-    // SHOW LOADER WHILE CONNECTING
-    if (controller.isConnecting) {
+    // SHOW LOADER WHILE DISCOVERING, CONNECTING OR SENDING
+    if (controller.isDiscovering ||
+        controller.isConnecting ||
+        controller.isSending) {
       return _loaderButton();
     }
 
-    // NOT CONNECTED
     if (controller.connectedEndpoint == null) {
       return SizedBox(
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
-          onPressed: qualityPassed ? openQrScanner : null,
+          onPressed: qualityPassed
+              ? () => openQrScanner(controller)
+              : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: qualityPassed
                 ? const Color(0xff009AF1)
@@ -234,13 +211,12 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
           ),
           child: const Text(
             "Connect Receiver",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color: Colors.white),
           ),
         ),
       );
     }
 
-    // CONNECTED BUT IMAGES MISSING
     if (!controller.canSubmit) {
       return SizedBox(
         width: double.infinity,
@@ -261,7 +237,6 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
       );
     }
 
-    // READY TO SEND
     return SizedBox(
       width: double.infinity,
       height: 52,
@@ -270,7 +245,7 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
         icon: const Icon(Icons.send),
         label: const Text(
           "Send to Receiver",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xff009AF1),
@@ -282,12 +257,12 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
     );
   }
 
-  Widget _retestButton() {
+  Widget _retestButton(SenderController controller) {
     return SizedBox(
       width: double.infinity,
       height: 48,
       child: OutlinedButton.icon(
-        onPressed: resetTest,
+        onPressed: () => resetTest(controller),
         icon: const Icon(Icons.restart_alt, color: Color(0xff009AF1)),
         label: const Text(
           "Retest",
@@ -309,19 +284,21 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = ref.watch(senderControllerProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _statusBanner(),
+          _statusBanner(controller),
           const SizedBox(height: 20),
-          _imageSlot(0),
+          _imageSlot(0, controller),
           const SizedBox(height: 20),
-          _imageSlot(1),
+          _imageSlot(1, controller),
           const SizedBox(height: 28),
-          _actionButton(),
+          _actionButton(controller),
           const SizedBox(height: 14),
-          _retestButton(),
+          _retestButton(controller),
         ],
       ),
     );

@@ -16,15 +16,15 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   EyeTestType selectedTest = EyeTestType.cataract;
-  final SenderController senderController = SenderController();
-
 
   @override
   Widget build(BuildContext context) {
+    final senderController = ref.read(senderControllerProvider);
+
     return Scaffold(
-       backgroundColor: Colors.white,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("SCCORE SYNC"),
+        title: const Text("Sccore Sync",style: TextStyle(color: Colors.white),),
         backgroundColor: const Color(0xff009AF1),
       ),
       body: SafeArea(
@@ -35,14 +35,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             EyeTestToggle(
               selected: selectedTest,
               onChanged: (type) async {
-                await senderController.resetFlow();
+                await senderController.resetConnectionHard();
+
                 senderController.isSquintFlow = type == EyeTestType.squint;
 
                 setState(() => selectedTest = type);
               },
             ),
-
-
 
             const SizedBox(height: 24),
 
@@ -56,7 +55,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ],
         ),
-
       ),
     );
   }

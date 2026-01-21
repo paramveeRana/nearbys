@@ -179,8 +179,10 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
   Widget _actionButton() {
     final bool qualityPassed = controller.squintImageId != null;
 
-    // SHOW LOADER BUTTON WHILE CONNECTING
-    if (controller.isConnecting) {
+    // SHOW LOADER BUTTON WHILE CONNECTING AND DISCOVERING
+    if (controller.isDiscovering ||
+        controller.isConnecting ||
+        controller.isSending) {
       return _loaderButton();
     }
 
@@ -201,7 +203,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
           ),
           child: const Text(
             "Connect Receiver",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color: Colors.white),
           ),
         ),
       );
@@ -213,10 +215,10 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       height: 52,
       child: ElevatedButton.icon(
         onPressed: controller.sendSquintImage,
-        icon: const Icon(Icons.send),
+        // icon: const Icon(Icons.send),
         label: const Text(
           "Send to Receiver",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xff009AF1),
@@ -227,6 +229,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       ),
     );
   }
+
   Widget _loaderButton() {
     return SizedBox(
       width: double.infinity,
@@ -247,6 +250,38 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
     );
   }
 
+  Widget _uploadProgressBar() {
+    if (controller.sendProgress <= 0 || controller.sendProgress >= 100) {
+      return const SizedBox(); // hide when not uploading
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Uploading... ${controller.sendProgress.toStringAsFixed(0)}%",
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xff009AF1),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              minHeight: 10,
+              value: controller.sendProgress / 100,
+              backgroundColor: Colors.grey.shade300,
+              color: const Color(0xff009AF1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _retestButton() {
     return SizedBox(
@@ -292,6 +327,8 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
                   const SizedBox(height: 4),
                   _squintSlot(),
                   const SizedBox(height: 28),
+                  _uploadProgressBar(),
+                  const SizedBox(height: 6,),
                   _actionButton(),
                   const SizedBox(height: 14),
                   _retestButton(),

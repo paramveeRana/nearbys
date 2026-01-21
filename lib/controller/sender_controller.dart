@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,15 +14,18 @@ import 'package:permission_handler/permission_handler.dart';
 import 'enums.dart';
 import 'vision_conroller.dart';
 
-final senderControllerProvider = ChangeNotifierProvider((ref) => SenderController());
+final senderControllerProvider =
+ChangeNotifierProvider((ref) => SenderController());
 
 class SenderController extends ChangeNotifier {
   final ImagePicker _picker = ImagePicker();
+
   bool isDiscovering = false;
   bool isConnecting = false;
-
   int? sendingPayloadId;
   double sendProgress = 0;
+
+  bool isSending = false;
 
   Uint8List? imageBytes0;
   Uint8List? imageBytes1;
@@ -42,9 +46,7 @@ class SenderController extends ChangeNotifier {
   File? squintImage;
   String? squintImageId;
   bool isCheckingSquint = false;
-
   Map<String, dynamic>? squintResultJson;
-
 
   bool isChecking0 = false; // left eye loading
   bool isChecking1 = false; // right eye loading
@@ -78,7 +80,6 @@ class SenderController extends ChangeNotifier {
 
   Future<void> startDiscovery() async {
     await stopDiscovery();
-
     status = "Starting discovery...";
     notifyListeners();
 
@@ -109,23 +110,46 @@ class SenderController extends ChangeNotifier {
                 endpointId,
                 onPayLoadRecieved: (endid, payload) {},
                 onPayloadTransferUpdate: (endpointId, update) {
+                  debugPrint("📦 Payload Update Callback Fired");
+                  debugPrint("➡ Endpoint: $endpointId");
+                  debugPrint("➡ Payload ID: ${update.id}");
+                  debugPrint("➡ Status: ${update.status}");
+                  debugPrint("➡ Bytes Transferred: ${update.bytesTransferred}");
+                  debugPrint("➡ Total Bytes: ${update.totalBytes}");
+
                   sendingPayloadId ??= update.id;
 
-                  if (update.id != sendingPayloadId) return;
+                  if (update.id != sendingPayloadId) {
+                    debugPrint("⏭ Ignoring payload id ${update.id}, tracking $sendingPayloadId");
+                    return;
+                  }
 
                   if (update.totalBytes > 0) {
                     final percent =
                         (update.bytesTransferred / update.totalBytes) * 100;
 
                     sendProgress = percent;
-                    status = "Sending... ${percent.toStringAsFixed(0)}%";
+
+                    debugPrint("📊 Progress: ${percent.toStringAsFixed(2)}%");
+
                     notifyListeners();
+                  } else {
+                    debugPrint("⚠ totalBytes = 0 (BytesPayload does not report chunk progress)");
                   }
 
                   if (update.status == PayloadStatus.SUCCESS) {
                     sendProgress = 100;
-                    status = "Image sent successfully";
+                    isSending = false;
                     notifyListeners();
+                  }
+
+
+                  if (update.status == PayloadStatus.FAILURE) {
+                    debugPrint("❌ Payload transfer FAILED");
+                  }
+
+                  if (update.status == PayloadStatus.CANCELED) {
+                    debugPrint("⚠ Payload transfer CANCELED");
                   }
                 },
               );
@@ -137,11 +161,7 @@ class SenderController extends ChangeNotifier {
                 status = "Connected. Select images.";
                 notifyListeners();
               } else {
-                // reset loader on failure
                 isConnecting = false;
-                connectedEndpoint = null;
-                status = "Connection failed. Please try again.";
-                notifyListeners();
               }
             },
             onDisconnected: (endpointId) {
@@ -152,30 +172,13 @@ class SenderController extends ChangeNotifier {
             },
           );
         },
-        onEndpointLost: (id) {
-          if (isConnecting) {
-            isConnecting = false;
-            status = "Receiver lost. Please try again.";
-            notifyListeners();
-          }
-        },
+        onEndpointLost: (id) {},
       );
 
       status = "Scanning for receiver...";
       notifyListeners();
-
-      // ❗ Timeout protection (15 seconds)
-      Future.delayed(const Duration(seconds: 15), () {
-        if (isConnecting || isDiscovering) {
-          stopDiscovery();
-          isConnecting = false;
-          status = "Connection timeout. Please try again.";
-          notifyListeners();
-        }
-      });
     } catch (e) {
       isDiscovering = false;
-      isConnecting = false; // reset loader
       status = "Discovery failed";
       notifyListeners();
     }
@@ -189,7 +192,6 @@ class SenderController extends ChangeNotifier {
     } catch (e) {}
 
     isDiscovering = false;
-    isConnecting = false; // reset loader
     status = "Discovery stopped";
     notifyListeners();
   }
@@ -223,6 +225,7 @@ class SenderController extends ChangeNotifier {
         imageBytes1 = jpegBytes;
         isChecking1 = true;
       }
+
       notifyListeners();
 
       // save normalized file for sending later
@@ -239,7 +242,6 @@ class SenderController extends ChangeNotifier {
 
       // API call with normalized JPEG
       final vision = ref.read(visionController);
-
       final bool isPassed = await vision.captureAiVisionTestImage(
         context,
         index == LEFT_EYE
@@ -273,8 +275,12 @@ class SenderController extends ChangeNotifier {
       debugPrint("Camera capture failed: $e");
     }
   }
+
   Future<void> sendBothImages() async {
     if (!canSubmit) return;
+
+    isSending = true;
+    notifyListeners();
 
     await Future.delayed(const Duration(milliseconds: 600));
     await _sendImage(image0!, LEFT_EYE);
@@ -284,39 +290,28 @@ class SenderController extends ChangeNotifier {
   }
 
   // ---------------- SEND IMAGE PAYLOAD ----------------
-
   Future<void> _sendImage(File file, int eyeIndex) async {
     if (connectedEndpoint == null) return;
 
     try {
-      // Read original bytes
       final Uint8List originalBytes = await file.readAsBytes();
 
-      // Decode image
       final img.Image? decoded = img.decodeImage(originalBytes);
       if (decoded == null) {
         debugPrint("Failed to decode image for compression");
         return;
       }
 
-      // Resize for faster transfer (keeps good quality for eyes)
-      final img.Image resized = img.copyResize(
-        decoded,
-        width: 720, // tune: 640 (faster) | 800 (better quality)
-      );
+      final img.Image resized = img.copyResize(decoded, width: 720);
 
-      // Encode JPEG with balanced quality
       final Uint8List compressedBytes =
-          Uint8List.fromList(img.encodeJpg(resized, quality: 65));
+      Uint8List.fromList(img.encodeJpg(resized, quality: 65));
 
-      debugPrint(
-          "Original size: ${originalBytes.lengthInBytes ~/ 1024} KB");
-      debugPrint(
-          "Compressed size: ${compressedBytes.lengthInBytes ~/ 1024} KB");
+      debugPrint("Original size: ${originalBytes.lengthInBytes ~/ 1024} KB");
+      debugPrint("Compressed size: ${compressedBytes.lengthInBytes ~/ 1024} KB");
 
-      // Get correct imageId
       final String imgId =
-          eyeIndex == LEFT_EYE ? (leftImageId ?? "") : (rightImageId ?? "");
+      eyeIndex == LEFT_EYE ? (leftImageId ?? "") : (rightImageId ?? "");
 
       if (imgId.isEmpty) {
         debugPrint("ImageId missing. Not sending payload.");
@@ -328,26 +323,32 @@ class SenderController extends ChangeNotifier {
 
       final Uint8List idBytes = Uint8List.fromList(imgId.codeUnits);
 
-      // Payload format:
-      // [eyeSide][imageIdLength][imageIdBytes...][imageBytes...]
       final Uint8List payload =
-          Uint8List(2 + idBytes.length + compressedBytes.length);
+      Uint8List(2 + idBytes.length + compressedBytes.length);
 
-      payload[0] = eyeIndex; // 0 = left, 1 = right
-      payload[1] = idBytes.length; // imageId length
+      payload[0] = eyeIndex;
+      payload[1] = idBytes.length;
       payload.setRange(2, 2 + idBytes.length, idBytes);
-      payload.setRange(
-          2 + idBytes.length, payload.length, compressedBytes);
+      payload.setRange(2 + idBytes.length, payload.length, compressedBytes);
+
+      // RESET PREVIOUS PAYLOAD TRACKING
+      sendingPayloadId = null;
+      sendProgress = 0;
+      status = "Sending image...";
+      notifyListeners();
+
+      debugPrint("Starting payload send");
+      debugPrint("Image bytes: ${compressedBytes.lengthInBytes}");
+      debugPrint("Endpoint: $connectedEndpoint");
 
       await nearby.sendBytesPayload(connectedEndpoint!, payload);
 
-      status = "Sending image...";
-      sendProgress = 0;
-      notifyListeners();
+      debugPrint("Payload handed to Nearby API");
     } catch (e) {
       debugPrint("Send error: $e");
     }
   }
+
   /// reset flow
   Future<void> resetFlow() async {
     try {
@@ -363,18 +364,13 @@ class SenderController extends ChangeNotifier {
       receiverId = "";
       status = "Idle";
 
-      isConnecting = false; // reset loader
-
       image0 = null;
       image1 = null;
-
       imageBytes0 = null;
       imageBytes1 = null;
-
       leftImageId = null;
       rightImageId = null;
 
-      // reset squint
       squintImage = null;
       squintImageBytes = null;
       squintImageId = null;
@@ -393,6 +389,66 @@ class SenderController extends ChangeNotifier {
     }
   }
 
+  Future<void> resetConnectionHard() async {
+    try {
+      debugPrint("Hard resetting Nearby connection");
+
+      // Stop discovery
+      if (isDiscovering) {
+        await nearby.stopDiscovery();
+        isDiscovering = false;
+      }
+
+      // Stop advertising if running
+      try {
+        await nearby.stopAdvertising();
+      } catch (_) {}
+
+      // Disconnect endpoint
+      if (connectedEndpoint != null) {
+        try {
+          await nearby.disconnectFromEndpoint(connectedEndpoint!);
+        } catch (_) {}
+      }
+
+      // Force close WiFi Direct session
+      await nearby.stopAllEndpoints();
+
+      // Reset state
+      connectedEndpoint = null;
+      isConnecting = false;
+      isDiscovering = false;
+      receiverId = "";
+      status = "Idle";
+
+      image0 = null;
+      image1 = null;
+      imageBytes0 = null;
+      imageBytes1 = null;
+      leftImageId = null;
+      rightImageId = null;
+
+      squintImage = null;
+      squintImageBytes = null;
+      squintImageId = null;
+      isCheckingSquint = false;
+      squintResultJson = null;
+
+      isChecking0 = false;
+      isChecking1 = false;
+
+      sendProgress = 0;
+      sendingPayloadId = null;
+
+      notifyListeners();
+
+      debugPrint("Nearby WiFi Direct fully closed");
+    } catch (e) {
+      debugPrint("Hard reset error: $e");
+    }
+  }
+
+
   /// squint image pick
   Future<void> pickSquintImage(BuildContext context, WidgetRef ref) async {
     try {
@@ -407,7 +463,6 @@ class SenderController extends ChangeNotifier {
       if (photo == null) return;
 
       final Uint8List rawBytes = await photo.readAsBytes();
-
       final decoded = img.decodeImage(rawBytes);
       if (decoded == null) return;
 
@@ -419,8 +474,8 @@ class SenderController extends ChangeNotifier {
       notifyListeners();
 
       final tempDir = Directory.systemTemp;
-      final file =
-      File('${tempDir.path}/squint_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final file = File(
+          '${tempDir.path}/squint_${DateTime.now().millisecondsSinceEpoch}.jpg');
       await file.writeAsBytes(jpegBytes);
 
       squintImage = file;
@@ -452,54 +507,37 @@ class SenderController extends ChangeNotifier {
         squintImageId == null) return;
 
     try {
-      // Read image
       final Uint8List originalBytes = await squintImage!.readAsBytes();
-
       final img.Image? decoded = img.decodeImage(originalBytes);
       if (decoded == null) return;
 
       final img.Image resized = img.copyResize(decoded, width: 720);
-
       final Uint8List compressedBytes =
       Uint8List.fromList(img.encodeJpg(resized, quality: 65));
 
-      // Encode JSON result
       final Uint8List jsonBytes =
       Uint8List.fromList(utf8.encode(jsonEncode(squintResultJson)));
 
-      // Encode Image ID
       final Uint8List idBytes =
       Uint8List.fromList(squintImageId!.codeUnits);
 
       final int jsonLength = jsonBytes.length;
       final int idLength = idBytes.length;
 
-      // Payload format:
-      // [type][idLength][idBytes][jsonLength(2)][json][image]
       final Uint8List payload = Uint8List(
         1 + 1 + idBytes.length + 2 + jsonBytes.length + compressedBytes.length,
       );
 
       int offset = 0;
-
-      payload[offset++] = 2; // type = squint
+      payload[offset++] = 2;
       payload[offset++] = idLength;
-
       payload.setRange(offset, offset + idBytes.length, idBytes);
       offset += idBytes.length;
-
       payload[offset++] = (jsonLength >> 8) & 0xFF;
       payload[offset++] = jsonLength & 0xFF;
-
       payload.setRange(offset, offset + jsonBytes.length, jsonBytes);
       offset += jsonBytes.length;
-
       payload.setRange(offset, offset + compressedBytes.length, compressedBytes);
-
-      debugPrint("Sending squint image + result + ID");
-      debugPrint("Squint Image ID: $squintImageId");
-      debugPrint("Squint JSON Length: $jsonLength");
-      debugPrint("Squint Image Size: ${compressedBytes.lengthInBytes ~/ 1024} KB");
 
       await nearby.sendBytesPayload(connectedEndpoint!, payload);
 
@@ -511,8 +549,6 @@ class SenderController extends ChangeNotifier {
     }
   }
 
-
-
   void disposeController() {
     stopDiscovery();
   }
@@ -523,7 +559,9 @@ class SenderController extends ChangeNotifier {
       return "Squint image verified. Please connect to the receiver device.";
     }
 
-    if (connectedEndpoint != null && squintImageId != null && sendProgress == 0) {
+    if (connectedEndpoint != null &&
+        squintImageId != null &&
+        sendProgress == 0) {
       return "Connected. Ready to send squint image.";
     }
 
@@ -547,7 +585,9 @@ class SenderController extends ChangeNotifier {
       return "Device connected. Please capture both eye images.";
     }
 
-    if (leftImageId != null && rightImageId != null && connectedEndpoint == null) {
+    if (leftImageId != null &&
+        rightImageId != null &&
+        connectedEndpoint == null) {
       return "Eye images verified. Please connect to the receiver device.";
     }
 
@@ -565,8 +605,4 @@ class SenderController extends ChangeNotifier {
 
     return "Please capture image to start the test.";
   }
-
-
-
-
 }
