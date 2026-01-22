@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nearbys/ui/utils/app_enums.dart';
+import 'package:nearbys/ui/utils/theme/app_colors.dart';
+import 'package:nearbys/ui/utils/theme/text_styles.dart';
+import 'package:nearbys/ui/utils/widgets/common_text.dart';
 
 class EyeTestToggle extends StatelessWidget {
   final EyeTestType selected;
@@ -18,7 +21,7 @@ class EyeTestToggle extends StatelessWidget {
       height: 50,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xff009AF1),
+        color: AppColors.clr009AF1,
         borderRadius: BorderRadius.circular(30),
       ),
       child: Stack(
@@ -33,7 +36,7 @@ class EyeTestToggle extends StatelessWidget {
               width: 126,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.white,
                 borderRadius: BorderRadius.circular(26),
               ),
             ),
@@ -59,11 +62,11 @@ class EyeTestToggle extends StatelessWidget {
         child: SizedBox(
           height: double.infinity,
           child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
+            child: CommonText(
+              title: title,
+              style: TextStyles.regular.copyWith(
                 fontWeight: FontWeight.w600,
-                color: isSelected ? const Color(0xff009AF1) : Colors.white,
+                color: isSelected ? AppColors.clr009AF1 : AppColors.white,
               ),
             ),
           ),

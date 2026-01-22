@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nearbys/controller/sender_controller.dart';
+import 'package:nearbys/framework/controller/sender_controller.dart';
 import 'package:nearbys/ui/cataract_eye_test/cataract_eye_test.dart';
 import 'package:nearbys/ui/squint_eye_test/squint_eye_test.dart';
 import 'package:nearbys/ui/utils/app_enums.dart';
+import 'package:nearbys/ui/utils/theme/app_colors.dart';
+import 'package:nearbys/ui/utils/widgets/common_text.dart';
 
 import 'helper/eye_test_toggle.dart';
 
@@ -22,10 +24,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final senderController = ref.read(senderControllerProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        title: const Text("Sccore Sync",style: TextStyle(color: Colors.white),),
-        backgroundColor: const Color(0xff009AF1),
+        title: const CommonText(title:"Sccore Sync",style: TextStyle(color: AppColors.white),),
+        backgroundColor: AppColors.clr009AF1,
       ),
       body: SafeArea(
         child: Column(

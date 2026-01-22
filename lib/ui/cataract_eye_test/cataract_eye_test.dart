@@ -4,17 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:lottie/lottie.dart';
-import 'package:nearbys/controller/sender_controller.dart';
-import '../qr_scanner.dart';
+import 'package:nearbys/framework/controller/sender_controller.dart';
+import 'package:nearbys/ui/utils/theme/app_colors.dart';
+import 'package:nearbys/ui/utils/theme/text_styles.dart';
+import 'package:nearbys/ui/utils/widgets/common_text.dart';
+import 'package:nearbys/ui/utils/widgets/qr_scanner.dart';
 
 class CataractEyeTest extends ConsumerStatefulWidget {
   const CataractEyeTest({super.key});
 
   @override
-  ConsumerState<CataractEyeTest> createState() => _ContractEyeTestState();
+  ConsumerState<CataractEyeTest> createState() => _CataractEyeTestState();
 }
 
-class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
+class _CataractEyeTestState extends ConsumerState<CataractEyeTest> {
 
   void openQrScanner(SenderController controller) {
     Navigator.push(
@@ -40,19 +43,19 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F5FF),
+        color: AppColors.clrF0F5FF,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xff009AF1)),
+        border: Border.all(color: AppColors.clr009AF1),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Color(0xff009AF1)),
+          const Icon(Icons.info_outline, color: AppColors.clr009AF1),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              controller.userStatus,
-              style: const TextStyle(
-                color: Color(0xFF2C4DA8),
+            child: CommonText(
+              title: controller.userStatus,
+              style: TextStyles.medium.copyWith(
+                color: AppColors.clr2C4DA8,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -81,13 +84,13 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xff009AF1),
+            color: AppColors.clr009AF1,
             width: 1.5,
           ),
         ),
         child: DottedBorder(
           options: RectDottedBorderOptions(
-            color: const Color(0xff009AF1),
+            color: AppColors.clr009AF1,
             strokeWidth: 1.5,
             dashPattern: const [8, 6],
             padding: const EdgeInsets.all(12),
@@ -96,7 +99,7 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
             width: double.infinity,
             height: 300,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F8FF),
+              color: AppColors.clrF5F8FF,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Stack(
@@ -127,27 +130,25 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        index == 0 ? "Left Eye" : "Right Eye",
-                        style: const TextStyle(
+                      CommonText(
+                        title: index == 0 ? "Left Eye" : "Right Eye",
+                        style: TextStyles.bold.copyWith(
                           color: Colors.black,
                           fontSize: 20,
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Padding(
                         padding:
                         const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          index == 0
+                        child: CommonText(
+                          title: index == 0
                               ? "Take a clear photo of your left eye"
                               : "Take a clear photo of your right eye",
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xff009AF1),
+                          style: TextStyles.medium.copyWith(
+                            color: AppColors.clr009AF1,
                             fontSize: 14,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -169,7 +170,7 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
       child: ElevatedButton(
         onPressed: null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff009AF1),
+          backgroundColor: AppColors.clr009AF1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -203,15 +204,15 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
               : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: qualityPassed
-                ? const Color(0xff009AF1)
+                ? AppColors.clr009AF1
                 : Colors.grey.shade400,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: const Text(
-            "Connect Receiver",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color: Colors.white),
+          child: CommonText(
+            title: "Connect Receiver",
+            style: TextStyles.semiBold.copyWith(fontSize: 16, color: Colors.white),
           ),
         ),
       );
@@ -229,9 +230,9 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: const Text(
-            "Capture both eye images",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          child: CommonText(
+            title: "Capture both eye images",
+            style: TextStyles.semiBold.copyWith(fontSize: 16,),
           ),
         ),
       );
@@ -243,12 +244,12 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
       child: ElevatedButton.icon(
         onPressed: controller.sendBothImages,
         icon: const Icon(Icons.send),
-        label: const Text(
-          "Send to Receiver",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color: Colors.white),
+        label: CommonText(
+          title: "Send to Receiver",
+          style: TextStyles.semiBold.copyWith(fontSize: 16, color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff009AF1),
+          backgroundColor: AppColors.clr009AF1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -263,17 +264,17 @@ class _ContractEyeTestState extends ConsumerState<CataractEyeTest> {
       height: 48,
       child: OutlinedButton.icon(
         onPressed: () => resetTest(controller),
-        icon: const Icon(Icons.restart_alt, color: Color(0xff009AF1)),
-        label: const Text(
-          "Retest",
-          style: TextStyle(
-            color: Color(0xff009AF1),
+        icon: const Icon(Icons.restart_alt, color: AppColors.clr009AF1),
+        label: CommonText(
+          title: "Retest",
+          style: TextStyles.semiBold.copyWith(
+            color: AppColors.clr009AF1,
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
         ),
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0xff009AF1)),
+          side: const BorderSide(color: AppColors.clr009AF1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

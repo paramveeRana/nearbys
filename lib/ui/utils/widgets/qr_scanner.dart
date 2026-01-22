@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:nearbys/ui/utils/theme/app_colors.dart';
 
 class QrScanner extends StatefulWidget {
   final Function(String) onScanned;
@@ -26,7 +27,7 @@ class _QrScannerState extends State<QrScanner> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text("Scan Receiver QR"),
-        backgroundColor: const Color(0xff009AF1),
+        backgroundColor: AppColors.clr009AF1,
       ),
       body: Stack(
         children: [

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,13 +8,11 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:image/image.dart' as img;
 import 'package:nearby_connections/nearby_connections.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:nearbys/ui/utils/app_enums.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import 'enums.dart';
 import 'vision_conroller.dart';
 
-final senderControllerProvider =
-ChangeNotifierProvider((ref) => SenderController());
+final senderControllerProvider = ChangeNotifierProvider((ref) => SenderController());
 
 class SenderController extends ChangeNotifier {
   final ImagePicker _picker = ImagePicker();
@@ -110,12 +107,12 @@ class SenderController extends ChangeNotifier {
                 endpointId,
                 onPayLoadRecieved: (endid, payload) {},
                 onPayloadTransferUpdate: (endpointId, update) {
-                  debugPrint("📦 Payload Update Callback Fired");
-                  debugPrint("➡ Endpoint: $endpointId");
-                  debugPrint("➡ Payload ID: ${update.id}");
-                  debugPrint("➡ Status: ${update.status}");
-                  debugPrint("➡ Bytes Transferred: ${update.bytesTransferred}");
-                  debugPrint("➡ Total Bytes: ${update.totalBytes}");
+                  debugPrint("Payload Update Callback Fired");
+                  debugPrint("Endpoint: $endpointId");
+                  debugPrint("Payload ID: ${update.id}");
+                  debugPrint("Status: ${update.status}");
+                  debugPrint("Bytes Transferred: ${update.bytesTransferred}");
+                  debugPrint("Total Bytes: ${update.totalBytes}");
 
                   sendingPayloadId ??= update.id;
 
@@ -130,11 +127,11 @@ class SenderController extends ChangeNotifier {
 
                     sendProgress = percent;
 
-                    debugPrint("📊 Progress: ${percent.toStringAsFixed(2)}%");
+                    debugPrint("Progress: ${percent.toStringAsFixed(2)}%");
 
                     notifyListeners();
                   } else {
-                    debugPrint("⚠ totalBytes = 0 (BytesPayload does not report chunk progress)");
+                    debugPrint("totalBytes = 0 (BytesPayload does not report chunk progress)");
                   }
 
                   if (update.status == PayloadStatus.SUCCESS) {
@@ -145,11 +142,11 @@ class SenderController extends ChangeNotifier {
 
 
                   if (update.status == PayloadStatus.FAILURE) {
-                    debugPrint("❌ Payload transfer FAILED");
+                    debugPrint("Payload transfer FAILED");
                   }
 
                   if (update.status == PayloadStatus.CANCELED) {
-                    debugPrint("⚠ Payload transfer CANCELED");
+                    debugPrint("Payload transfer CANCELED");
                   }
                 },
               );

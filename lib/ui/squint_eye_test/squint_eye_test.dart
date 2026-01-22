@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:lottie/lottie.dart';
-import 'package:nearbys/controller/sender_controller.dart';
-import '../qr_scanner.dart';
+import 'package:nearbys/framework/controller/sender_controller.dart';
+import 'package:nearbys/ui/utils/theme/app_colors.dart';
+import 'package:nearbys/ui/utils/theme/text_styles.dart';
+import 'package:nearbys/ui/utils/widgets/common_text.dart';
+import '../utils/widgets/qr_scanner.dart';
 
 class SquintEyeTest extends ConsumerStatefulWidget {
   const SquintEyeTest({super.key});
@@ -16,20 +19,8 @@ class SquintEyeTest extends ConsumerStatefulWidget {
 }
 
 class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
-  final SenderController controller = SenderController();
 
-  @override
-  void initState() {
-    super.initState();
-    controller.initPermissions();
-    controller.addListener(_refreshUI);
-  }
-
-  void _refreshUI() {
-    if (mounted) setState(() {});
-  }
-
-  void openQrScanner() {
+  void openQrScanner(SenderController controller) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -44,36 +35,28 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
     );
   }
 
-  void resetTest() async {
+  void resetTest(SenderController controller) async {
     await controller.resetFlow();
   }
 
-  @override
-  void dispose() {
-    controller.disposeController();
-    controller.removeListener(_refreshUI);
-    super.dispose();
-  }
-
-  Widget _statusBanner() {
+  Widget _statusBanner(SenderController controller) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F5FF),
+        color: AppColors.clrF0F5FF,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xff009AF1)),
+        border: Border.all(color: AppColors.clr009AF1),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Color(0xff009AF1)),
+          const Icon(Icons.info_outline, color: AppColors.clr009AF1),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              controller.userStatus,
-              style: const TextStyle(
-                color: Color(0xFF2C4DA8),
-                fontWeight: FontWeight.w500,
+            child: CommonText(
+              title: controller.userStatus,
+              style: TextStyles.medium.copyWith(
+                color: AppColors.clr2C4DA8,
               ),
             ),
           ),
@@ -82,7 +65,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
     );
   }
 
-  Widget _squintSlot() {
+  Widget _squintSlot(SenderController controller) {
     Uint8List? imageBytes = controller.squintImageBytes;
     bool isLoading = controller.isCheckingSquint;
 
@@ -95,16 +78,16 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xff009AF1),
+            color: AppColors.clr009AF1,
             width: 1.5,
           ),
         ),
         child: DottedBorder(
           options: RectDottedBorderOptions(
-            color: const Color(0xff009AF1),
+            color: AppColors.clr009AF1,
             strokeWidth: 1.5,
             dashPattern: const [8, 6],
             padding: const EdgeInsets.all(12),
@@ -113,7 +96,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
             width: double.infinity,
             height: 300,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F8FF),
+              color: AppColors.clrF5F8FF,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Stack(
@@ -143,24 +126,22 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const Text(
-                        "Squint Eye",
-                        style: TextStyle(
+                      CommonText(
+                        title: "Squint Eye",
+                        style: TextStyles.bold.copyWith(
                           color: Colors.black,
                           fontSize: 20,
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          "Take a clear photo of the squint eye",
+                        child: CommonText(
+                          title: "Take a clear photo of the squint eye",
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Color(0xff009AF1),
+                          style: TextStyles.medium.copyWith(
+                            color: AppColors.clr009AF1,
                             fontSize: 14,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -176,52 +157,48 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
     );
   }
 
-  Widget _actionButton() {
+  Widget _actionButton(SenderController controller) {
     final bool qualityPassed = controller.squintImageId != null;
 
-    // SHOW LOADER BUTTON WHILE CONNECTING AND DISCOVERING
     if (controller.isDiscovering ||
         controller.isConnecting ||
         controller.isSending) {
       return _loaderButton();
     }
 
-    // NOT CONNECTED
     if (controller.connectedEndpoint == null) {
       return SizedBox(
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
-          onPressed: qualityPassed ? openQrScanner : null,
+          onPressed: qualityPassed ? () => openQrScanner(controller) : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: qualityPassed
-                ? const Color(0xff009AF1)
+                ? AppColors.clr009AF1
                 : Colors.grey.shade400,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: const Text(
-            "Connect Receiver",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color: Colors.white),
+          child: CommonText(
+            title: "Connect Receiver",
+            style: TextStyles.semiBold.copyWith(fontSize: 16, color: Colors.white),
           ),
         ),
       );
     }
 
-    // CONNECTED
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton.icon(
         onPressed: controller.sendSquintImage,
-        // icon: const Icon(Icons.send),
-        label: const Text(
-          "Send to Receiver",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,color: Colors.white),
+        label: CommonText(
+          title: "Send to Receiver",
+          style: TextStyles.semiBold.copyWith(fontSize: 16,color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff009AF1),
+          backgroundColor: AppColors.clr009AF1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -235,9 +212,9 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: null, // disabled
+        onPressed: null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff009AF1),
+          backgroundColor: AppColors.clr009AF1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -250,9 +227,9 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
     );
   }
 
-  Widget _uploadProgressBar() {
+  Widget _uploadProgressBar(SenderController controller) {
     if (controller.sendProgress <= 0 || controller.sendProgress >= 100) {
-      return const SizedBox(); // hide when not uploading
+      return const SizedBox();
     }
 
     return Padding(
@@ -260,12 +237,11 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Uploading... ${controller.sendProgress.toStringAsFixed(0)}%",
-            style: const TextStyle(
+          CommonText(
+            title: "Uploading... ${controller.sendProgress.toStringAsFixed(0)}%",
+            style: TextStyles.semiBold.copyWith(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xff009AF1),
+              color: AppColors.clr009AF1,
             ),
           ),
           const SizedBox(height: 8),
@@ -275,7 +251,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
               minHeight: 10,
               value: controller.sendProgress / 100,
               backgroundColor: Colors.grey.shade300,
-              color: const Color(0xff009AF1),
+              color: AppColors.clr009AF1,
             ),
           ),
         ],
@@ -283,23 +259,22 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
     );
   }
 
-  Widget _retestButton() {
+  Widget _retestButton(SenderController controller) {
     return SizedBox(
       width: double.infinity,
       height: 48,
       child: OutlinedButton.icon(
-        onPressed: resetTest,
-        icon: const Icon(Icons.restart_alt, color: Color(0xff009AF1)),
-        label: const Text(
-          "Retest",
-          style: TextStyle(
-            color: Color(0xff009AF1),
+        onPressed: () => resetTest(controller),
+        icon: const Icon(Icons.restart_alt, color: AppColors.clr009AF1),
+        label: CommonText(
+          title: "Retest",
+          style: TextStyles.semiBold.copyWith(
+            color: AppColors.clr009AF1,
             fontSize: 15,
-            fontWeight: FontWeight.w600,
           ),
         ),
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0xff009AF1)),
+          side: const BorderSide(color: AppColors.clr009AF1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -310,6 +285,8 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = ref.watch(senderControllerProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -317,7 +294,7 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: _statusBanner(),
+              child: _statusBanner(controller),
             ),
 
             SingleChildScrollView(
@@ -325,13 +302,13 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
               child: Column(
                 children: [
                   const SizedBox(height: 4),
-                  _squintSlot(),
+                  _squintSlot(controller),
                   const SizedBox(height: 28),
-                  _uploadProgressBar(),
-                  const SizedBox(height: 6,),
-                  _actionButton(),
+                  _uploadProgressBar(controller),
+                  const SizedBox(height: 6),
+                  _actionButton(controller),
                   const SizedBox(height: 14),
-                  _retestButton(),
+                  _retestButton(controller),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -341,5 +318,4 @@ class _SquintEyeTestState extends ConsumerState<SquintEyeTest> {
       ),
     );
   }
-
 }
