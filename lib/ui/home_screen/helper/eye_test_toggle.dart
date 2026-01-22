@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:nearbys/ui/utils/app_enums.dart';
-import 'package:nearbys/ui/utils/theme/app_colors.dart';
-import 'package:nearbys/ui/utils/theme/text_styles.dart';
-import 'package:nearbys/ui/utils/widgets/common_text.dart';
+import 'package:sccore_sync/ui/utils/app_enums.dart';
+import 'package:sccore_sync/ui/utils/theme/app_colors.dart';
+import 'package:sccore_sync/ui/utils/theme/text_styles.dart';
+import 'package:sccore_sync/ui/utils/widgets/common_text.dart';
 
 class EyeTestToggle extends StatelessWidget {
   final EyeTestType selected;

@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
-import 'package:nearbys/ui/utils/theme/app_colors.dart';
-import 'package:nearbys/ui/utils/theme/text_styles.dart';
+import 'package:sccore_sync/ui/utils/theme/app_colors.dart';
+import 'package:sccore_sync/ui/utils/theme/text_styles.dart';
 
 class CommonText extends StatelessWidget {
   final String title;

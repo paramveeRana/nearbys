@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:nearbys/ui/utils/app_constants.dart';
+import 'package:sccore_sync/ui/utils/app_constants.dart';
 
 part 'network_exception.freezed.dart';
 

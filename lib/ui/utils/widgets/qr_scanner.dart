@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:nearbys/ui/utils/theme/app_colors.dart';
+import 'package:sccore_sync/ui/utils/theme/app_colors.dart';
 
 class QrScanner extends StatefulWidget {
   final Function(String) onScanned;

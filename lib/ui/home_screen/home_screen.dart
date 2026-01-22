@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nearbys/framework/controller/sender_controller.dart';
-import 'package:nearbys/ui/cataract_eye_test/cataract_eye_test.dart';
-import 'package:nearbys/ui/squint_eye_test/squint_eye_test.dart';
-import 'package:nearbys/ui/utils/app_enums.dart';
-import 'package:nearbys/ui/utils/theme/app_colors.dart';
-import 'package:nearbys/ui/utils/widgets/common_text.dart';
+import 'package:sccore_sync/framework/controller/sender_controller.dart';
+import 'package:sccore_sync/ui/cataract_eye_test/cataract_eye_test.dart';
+import 'package:sccore_sync/ui/squint_eye_test/squint_eye_test.dart';
+import 'package:sccore_sync/ui/utils/app_enums.dart';
+import 'package:sccore_sync/ui/utils/theme/app_colors.dart';
+import 'package:sccore_sync/ui/utils/widgets/common_text.dart';
 
 import 'helper/eye_test_toggle.dart';
 

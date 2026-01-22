@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:nearbys/framework/repository/ai_vision_test/model/squint_scan_model.dart';
-import 'package:nearbys/ui/utils/app_constants.dart';
+import 'package:sccore_sync/framework/repository/ai_vision_test/model/squint_scan_model.dart';
+import 'package:sccore_sync/ui/utils/app_constants.dart';
 
 
 import '../../../provider/network/api_result.dart';

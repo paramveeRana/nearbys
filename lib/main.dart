@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nearbys/ui/home_screen/home_screen.dart';
+import 'package:sccore_sync/ui/home_screen/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

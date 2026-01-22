@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:image/image.dart' as img;
 import 'package:nearby_connections/nearby_connections.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:nearbys/ui/utils/app_enums.dart';
+import 'package:sccore_sync/ui/utils/app_enums.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'vision_conroller.dart';
 

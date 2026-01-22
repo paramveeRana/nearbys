@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:lottie/lottie.dart';
-import 'package:nearbys/framework/controller/sender_controller.dart';
-import 'package:nearbys/ui/utils/theme/app_colors.dart';
-import 'package:nearbys/ui/utils/theme/text_styles.dart';
-import 'package:nearbys/ui/utils/widgets/common_text.dart';
-import 'package:nearbys/ui/utils/widgets/qr_scanner.dart';
+import 'package:sccore_sync/framework/controller/sender_controller.dart';
+import 'package:sccore_sync/ui/utils/theme/app_colors.dart';
+import 'package:sccore_sync/ui/utils/theme/text_styles.dart';
+import 'package:sccore_sync/ui/utils/widgets/common_text.dart';
+import 'package:sccore_sync/ui/utils/widgets/qr_scanner.dart';
 
 class CataractEyeTest extends ConsumerStatefulWidget {
   const CataractEyeTest({super.key});
