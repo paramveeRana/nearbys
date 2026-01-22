@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nearbys"
+    namespace = "com.example.sccoresync"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.nearbys"
+        applicationId = "com.example.sccoresync"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,7 +29,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        manifestPlaceholders["nearbyServiceId"] = "com.example.nearbyshare"
+        manifestPlaceholders["nearbyServiceId"] = "com.example.sccoresync"
 
     }
 
